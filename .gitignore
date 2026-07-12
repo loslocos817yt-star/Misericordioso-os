@@ -3,3 +3,7 @@ build/
 disk.img
 *.o
 *.bin
+build/
+disk.img
+*.o
+*.bin
