@@ -13,10 +13,13 @@ build/kernel.o: src/kernel.c
 build/teclado.o: src/teclado.c
 	clang --target=i386-elf -ffreestanding -fno-pie -nostdlib -c src/teclado.c -o build/teclado.o
 
+# Regla para com.c (NUEVO)
+build/com.o: src/com.c
+	clang --target=i386-elf -ffreestanding -fno-pie -nostdlib -c src/com.c -o build/com.o
+
 # Regla para unir todo
-build/os.bin: build/boot.o build/kernel.o build/teclado.o
-	ld -m elf_i386 -T linker.ld -o build/os.bin build/boot.o build/kernel.o build/teclado.o
+build/os.bin: build/boot.o build/kernel.o build/teclado.o build/com.o
+	ld -m elf_i386 -T linker.ld -o build/os.bin build/boot.o build/kernel.o build/teclado.o build/com.o
 
 clean:
 	rm -rf build/*.o build/os.bin
-
