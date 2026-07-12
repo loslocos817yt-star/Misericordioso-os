@@ -1,6 +1,6 @@
 // ==========================================
 // MISERICORDIOSO OS - MANEJO DE COMANDOS
-// ==========================================
+//XD ==========================================
 
 extern void print(const char* str);
 extern void clear_screen();
