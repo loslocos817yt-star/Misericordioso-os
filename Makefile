@@ -1,5 +1,7 @@
 all: build/os.bin
 
+#Ayuda xdddd
+
 build/boot.o: src/boot.s
 	nasm -f elf32 src/boot.s -o build/boot.o
 
