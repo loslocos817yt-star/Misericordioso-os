@@ -153,7 +153,7 @@ void process_command(char* cmd_buffer) {
         print("  REBOOT   - Reinicia la computadora\n");
     }
     else if (k_strcmp(cmd_buffer, "cls") == 0) clear_screen();
-    else if (k_strcmp(cmd_buffer, "ver") == 0) print("Misericordioso OS v1.0\n");
+    else if (k_strcmp(cmd_buffer, "ver") == 0) print("Misericordioso OS v1. Subscribete a insano de carton_MC en youtube 0\n");
     else if (k_strcmp(cmd_buffer, "time") == 0) {
         unsigned char h = bcd_to_bin(read_cmos(0x04));
         unsigned char m = bcd_to_bin(read_cmos(0x02));
