@@ -151,6 +151,7 @@ void process_command(char* cmd_buffer) {
         print("  MKDIR    - Crea carpetas (-c) o archivos (-a)\n");
         print("  EDIT     - Abre el editor de texto (Bloc de notas)\n");
         print("  REBOOT   - Reinicia la computadora\n");
+        print("  TYPE     - muestra el contenido de un arhivo\n");
     }
     else if (k_strcmp(cmd_buffer, "cls") == 0) clear_screen();
     else if (k_strcmp(cmd_buffer, "ver") == 0) print("Misericordioso OS v1. Subscribete a insano de carton_MC en youtube 0\n");
