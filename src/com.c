@@ -261,6 +261,37 @@ void process_command(char* cmd_buffer) {
         }
     }
 
+        else if (k_strncmp(cmd_buffer, "type ", 5) == 0) {
+    char* name = cmd_buffer + 5;
+    int found_idx = -1;
+
+    // Buscamos el archivo igual que en el comando "edit"
+    for(int i = 0; i < 16; i++) {
+        if (vfs[i].active && vfs[i].is_dir == 0 &&
+            k_strcmp(vfs[i].parent, current_dir) == 0 &&
+            k_strcmp(vfs[i].name, name) == 0) {
+            found_idx = i;
+            break;
+        }
+    }
+
+    if (found_idx != -1) {
+        unsigned char buffer[512];
+        ide_read_sector(101 + found_idx, buffer);
+        
+        // Imprimimos el contenido del sector
+        for(int i = 0; i < 512; i++) {
+            if (buffer[i] == 0) break; // Fin del archivo
+            char str[2] = {buffer[i], '\0'};
+            print(str);
+        }
+        print("\n");
+    } else {
+        print("Error: Archivo no encontrado.\n");
+    }
+        }
+            
+
     else if (k_strncmp(cmd_buffer, "cd", 2) == 0) {
         if (cmd_buffer[2] == '\0' || (cmd_buffer[2] == ' ' && cmd_buffer[3] == '\0')) {
             print(current_dir); print("\n");
@@ -296,3 +327,4 @@ void process_command(char* cmd_buffer) {
     }
     else if (cmd_buffer[0] != '\0') print("Comando no reconocido.\n");
 }
+
