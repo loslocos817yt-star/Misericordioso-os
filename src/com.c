@@ -1,3 +1,4 @@
+
 // ==========================================
 // MISERICORDIOSO OS - MANEJO DE COMANDOS
 //XD ==========================================
@@ -85,11 +86,11 @@ void editor_mode(int vfs_index) {
         if (redraw) {
             clear_screen();
             print("--- BLOC DE NOTAS --- [ESC] Guardar y Salir\n");
-            
+
             // Dibujar la linea 1
             int line = 1;
             print_int(line); print(" | ");
-            
+
             // Renderizar el texto
             for(int i = 0; i < e_len; i++) {
                 char str[2] = {edit_buffer[i], '\0'};
@@ -124,10 +125,10 @@ void editor_mode(int vfs_index) {
     // Rellenar de ceros el sobrante para limpiar basura
     edit_buffer[e_len] = '\0';
     for(int i = e_len + 1; i < 512; i++) edit_buffer[i] = 0;
-    
+
     // Guardar en el disco duro
     ide_write_sector(lba, edit_buffer);
-    
+
     clear_screen();
     print("Archivo guardado en el disco.\n");
 }
@@ -136,7 +137,7 @@ void editor_mode(int vfs_index) {
 // PROCESAMIENTO DE COMANDOS
 // ==========================================
 void process_command(char* cmd_buffer) {
-    init_vfs(); 
+    init_vfs();
 
     if (k_strcmp(cmd_buffer, "help") == 0) {
         print("Comandos del sistema:\n");
@@ -151,7 +152,8 @@ void process_command(char* cmd_buffer) {
         print("  MKDIR    - Crea carpetas (-c) o archivos (-a)\n");
         print("  EDIT     - Abre el editor de texto (Bloc de notas)\n");
         print("  REBOOT   - Reinicia la computadora\n");
-        print("  TYPE     - muestra el contenido de un arhivo\n");
+        print("  TYPE     - Muestra el contenido de un arhivo\n");
+        print("  RM       - Elimina un archivo\n");
     }
     else if (k_strcmp(cmd_buffer, "cls") == 0) clear_screen();
     else if (k_strcmp(cmd_buffer, "ver") == 0) print("Misericordioso OS v1. Subscribete a insano de carton_MC en youtube 0\n");
@@ -187,7 +189,7 @@ void process_command(char* cmd_buffer) {
         outb(0x64, 0xFE);
         while(1);
     }
-    
+
     // SISTEMA DE ARCHIVOS
     else if (k_strcmp(cmd_buffer, "ls") == 0) {
         int empty = 1;
@@ -231,7 +233,7 @@ void process_command(char* cmd_buffer) {
                     break;
                 }
             }
-            
+
             // Si no existe, lo crea automaticamente
             if (found_idx == -1) {
                 for(int i = 0; i < 16; i++) {
@@ -241,18 +243,18 @@ void process_command(char* cmd_buffer) {
                         vfs[i].is_dir = 0;
                         vfs[i].active = 1;
                         save_vfs();
-                        
+
                         // Limpiar el sector del nuevo archivo
                         unsigned char ceros[512];
                         for(int j=0; j<512; j++) ceros[j] = 0;
                         ide_write_sector(101 + i, ceros);
-                        
+
                         found_idx = i;
                         break;
                     }
                 }
             }
-            
+
             // Lanzar el editor
             if (found_idx != -1) {
                 editor_mode(found_idx);
@@ -262,36 +264,59 @@ void process_command(char* cmd_buffer) {
         }
     }
 
-        else if (k_strncmp(cmd_buffer, "type ", 5) == 0) {
-    char* name = cmd_buffer + 5;
-    int found_idx = -1;
+    else if (k_strncmp(cmd_buffer, "type ", 5) == 0) {
+        char* name = cmd_buffer + 5;
+        int found_idx = -1;
 
-    // Buscamos el archivo igual que en el comando "edit"
-    for(int i = 0; i < 16; i++) {
-        if (vfs[i].active && vfs[i].is_dir == 0 &&
-            k_strcmp(vfs[i].parent, current_dir) == 0 &&
-            k_strcmp(vfs[i].name, name) == 0) {
-            found_idx = i;
-            break;
+        // Buscamos el archivo igual que en el comando "edit"
+        for(int i = 0; i < 16; i++) {
+            if (vfs[i].active && vfs[i].is_dir == 0 &&
+                k_strcmp(vfs[i].parent, current_dir) == 0 &&
+                k_strcmp(vfs[i].name, name) == 0) {
+                found_idx = i;
+                break;
+            }
+        }
+
+        if (found_idx != -1) {
+            unsigned char buffer[512];
+            ide_read_sector(101 + found_idx, buffer);
+
+            // Imprimimos el contenido del sector
+            for(int i = 0; i < 512; i++) {
+                if (buffer[i] == 0) break; // Fin del archivo
+                char str[2] = {buffer[i], '\0'};
+                print(str);
+            }
+            print("\n");
+        } else {
+            print("Error: Archivo no encontrado.\n");
         }
     }
 
-    if (found_idx != -1) {
-        unsigned char buffer[512];
-        ide_read_sector(101 + found_idx, buffer);
-        
-        // Imprimimos el contenido del sector
-        for(int i = 0; i < 512; i++) {
-            if (buffer[i] == 0) break; // Fin del archivo
-            char str[2] = {buffer[i], '\0'};
-            print(str);
+    // COMANDO RM (ELIMINAR ARCHIVO)
+    else if (k_strncmp(cmd_buffer, "rm ", 3) == 0) {
+        char* name = cmd_buffer + 3; // El nombre esta despues de "rm "
+        int found_idx = -1;
+
+        // Buscamos el archivo en el directorio actual
+        for(int i = 0; i < 16; i++) {
+            if (vfs[i].active && vfs[i].is_dir == 0 &&
+                k_strcmp(vfs[i].parent, current_dir) == 0 &&
+                k_strcmp(vfs[i].name, name) == 0) {
+                found_idx = i;
+                break;
+            }
         }
-        print("\n");
-    } else {
-        print("Error: Archivo no encontrado.\n");
+
+        if (found_idx != -1) {
+            vfs[found_idx].active = 0; // Borramos el nodo marcandolo como inactivo
+            save_vfs();                // Guardamos la tabla VFS actualizada en el disco
+            print("Archivo eliminado.\n");
+        } else {
+            print("Error: Archivo no encontrado.\n");
+        }
     }
-        }
-            
 
     else if (k_strncmp(cmd_buffer, "cd", 2) == 0) {
         if (cmd_buffer[2] == '\0' || (cmd_buffer[2] == ' ' && cmd_buffer[3] == '\0')) {
@@ -328,4 +353,3 @@ void process_command(char* cmd_buffer) {
     }
     else if (cmd_buffer[0] != '\0') print("Comando no reconocido.\n");
 }
-
