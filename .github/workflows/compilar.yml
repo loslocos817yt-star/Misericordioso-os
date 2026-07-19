@@ -1,0 +1,46 @@
+name: Compilar y Crear ISO
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Instalar herramientas
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential grub-pc-bin xorriso mtools
+
+    - name: Compilar el Kernel
+      run: |
+        # Esto ejecuta tu Makefile que ya tienes en la raíz
+        make
+
+    - name: Preparar estructura de la ISO
+      run: |
+        mkdir -p iso_root/boot/grub
+        # Copia tu os.bin recién compilado a la estructura de la ISO
+        cp os.bin iso_root/boot/
+        
+        # Crea la configuración de GRUB
+        cat << 'EOF' > iso_root/boot/grub/grub.cfg
+        set timeout=0
+        set default=0
+        menuentry "Misericordioso OS" {
+            multiboot /boot/os.bin
+            boot
+        }
+        EOF
+
+    - name: Crear ISO
+      run: |
+        grub-mkrescue -o MisericordiosoOS.iso iso_root/
+
+    - name: Subir la ISO
+      uses: actions/upload-artifact@v3
+      with:
+        name: MisericordiosoOS
+        path: MisericordiosoOS.iso
+        
