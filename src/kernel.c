@@ -253,9 +253,93 @@ void draw_mc_function_bar(int row) {
     }
 }
 
+/* ============================================================
+   BANNER GRANDE "PattitexTEC" CON COLORES POR LETRA
+   Pattitex -> blanco | T -> rojo | E -> azul | C -> verde
+   ============================================================ */
+
+#define BIG_FONT_W 5
+#define BIG_FONT_H 5
+#define BIG_BLOCK  ((char)219) /* caracter de bloque solido de la pagina VGA */
+
+/* Dibuja una sola letra grande (5x5 bloques) en (x,y) con el color dado.
+   Solo se definen las letras necesarias para "PATTITEXTEC". */
+void draw_big_letter(int x, int y, char c, unsigned char color) {
+    const char* rows[BIG_FONT_H];
+    switch (c) {
+        case 'A':
+            rows[0]=".###."; rows[1]="#...#"; rows[2]="#####";
+            rows[3]="#...#"; rows[4]="#...#";
+            break;
+        case 'C':
+            rows[0]=".####"; rows[1]="#...."; rows[2]="#....";
+            rows[3]="#...."; rows[4]=".####";
+            break;
+        case 'E':
+            rows[0]="#####"; rows[1]="#...."; rows[2]="###..";
+            rows[3]="#...."; rows[4]="#####";
+            break;
+        case 'I':
+            rows[0]="#####"; rows[1]="..#.."; rows[2]="..#..";
+            rows[3]="..#.."; rows[4]="#####";
+            break;
+        case 'P':
+            rows[0]="####."; rows[1]="#...#"; rows[2]="####.";
+            rows[3]="#...."; rows[4]="#....";
+            break;
+        case 'T':
+            rows[0]="#####"; rows[1]="..#.."; rows[2]="..#..";
+            rows[3]="..#.."; rows[4]="..#..";
+            break;
+        case 'X':
+            rows[0]="#...#"; rows[1]=".#.#."; rows[2]="..#..";
+            rows[3]=".#.#."; rows[4]="#...#";
+            break;
+        default:
+            rows[0]="....."; rows[1]="....."; rows[2]=".....";
+            rows[3]="....."; rows[4]=".....";
+            break;
+    }
+    for (int r = 0; r < BIG_FONT_H; r++) {
+        for (int col = 0; col < BIG_FONT_W; col++) {
+            char ch = (rows[r][col] == '#') ? BIG_BLOCK : ' ';
+            put_char_at(x + col, y + r, ch, color);
+        }
+    }
+}
+
+/* Dibuja "PattitexTEC" en grande, centrado horizontalmente dentro de un
+   area de ancho box_w que comienza en box_x, en la fila y.
+   Colores: "Pattitex" blanco, "T" rojo, "E" azul, "C" verde. */
+void draw_pattitex_banner(int box_x, int box_w, int y, unsigned char bg) {
+    const char* word = "PATTITEXTEC"; /* 11 letras */
+    int len = k_strlen(word);
+
+    unsigned char blanco = mc_color(MC_BLANCO,   bg);
+    unsigned char rojo   = mc_color(MC_ROJO_CL,  bg);
+    unsigned char azul   = mc_color(MC_AZUL_CL,  bg);
+    unsigned char verde  = mc_color(MC_VERDE_CL, bg);
+
+    int banner_w = len * BIG_FONT_W + (len - 1); /* letras + espacios de 1 col */
+    int x = box_x + (box_w - banner_w) / 2;
+    if (x < box_x) x = box_x;
+
+    for (int i = 0; i < len; i++) {
+        unsigned char color;
+        if (i < 8)       color = blanco; /* "PATTITEX" = 8 letras -> blanco */
+        else if (i == 8) color = rojo;   /* T -> rojo */
+        else if (i == 9) color = azul;   /* E -> azul */
+        else              color = verde; /* C -> verde */
+
+        draw_big_letter(x, y, word[i], color);
+        x += BIG_FONT_W + 1;
+    }
+}
+
 /* Dibuja el logo (el mismo arreglo de print_logo) centrado dentro de un
    recuadro de coordenadas dadas, usando put_str_at en vez de print(),
-   para que quede fijo dentro del marco estilo mc. */
+   para que quede fijo dentro del marco estilo mc. El banner grande
+   "PattitexTEC" solo aparece en la pantalla de arranque, no aqui. */
 void draw_logo_in_box(int x, int y, int w, int h, unsigned char color) {
     const char* logo[] = {
         "  __  __ _               _                   _ _                    ___  ____",
@@ -265,6 +349,7 @@ void draw_logo_in_box(int x, int y, int w, int h, unsigned char color) {
         " |_|  |_|_|___/\\___|_|  |_|\\___\\___/|_|  \\__,_|_|\\___/|___/\\___/   \\___/|____/",
         0
     };
+
     int row = y + 2;
     for (int i = 0; logo[i] != 0; i++) {
         put_str_at(x + 2, row, logo[i], color);
@@ -294,7 +379,49 @@ void draw_mc_interface() {
    FIN DE LA INTERFAZ MIDNIGHT COMMANDER
    ============================================================ */
 
+/* ============================================================
+   PANTALLA DE ARRANQUE ESTILO WINDOWS 1.0
+   Fondo azul marino con el logo grande "PattitexTEC" al centro,
+   se muestra unos segundos y despues regresa al shell.
+   ============================================================ */
+
+/* Espera ocupada simple; no depende del PIT, solo cuenta ciclos. */
+void delay(unsigned int loops) {
+    volatile unsigned int i;
+    for (i = 0; i < loops; i++) { }
+}
+
+void draw_splash_screen() {
+    unsigned char bg = MC_AZUL; /* azul marino de fondo, como el boot de Windows 1.0 */
+    unsigned char splash_bg_color = mc_color(MC_BLANCO, bg);
+
+    clear_screen();
+    fill_rect(0, 0, 80, 25, ' ', splash_bg_color);
+
+    /* Logo grande "PattitexTEC" centrado verticalmente */
+    draw_pattitex_banner(0, 80, 9, bg);
+
+    const char* subtitle = "Misericordioso OS";
+    const int max_dots = 5;
+    int sub_x = (80 - k_strlen(subtitle) - max_dots) / 2;
+    put_str_at(sub_x, 16, subtitle, splash_bg_color);
+
+    cursor = 0;
+    update_vga_cursor();
+
+    delay(20000000); /* pausa antes de empezar a mostrar los puntos */
+
+    int dot_x = sub_x + k_strlen(subtitle);
+    for (int i = 0; i < max_dots; i++) {
+        put_char_at(dot_x + i, 16, '.', splash_bg_color);
+        delay(15000000); /* espera entre cada punto */
+    }
+
+    delay(30000000); /* mantiene la pantalla visible antes de pasar al shell */
+}
+
 void kernel_main() {
+    draw_splash_screen();
     draw_mc_interface();
 
     current_color = mc_color(MC_BLANCO, MC_AZUL);
